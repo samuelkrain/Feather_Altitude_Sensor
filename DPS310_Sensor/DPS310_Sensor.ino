@@ -13,6 +13,15 @@ SPI Details:
   Speed: (10 MHz)
   Control byte: (bit 7 of address, w = 0, r = 1)
 
+Coding Checklist
+* Check whether READ and WRITE are needed, and if so what value they should be
+* Code serial connection to computer for debugging
+* Code data preprocessing section (l. 89)
+Debug Checklist
+  * Check SPI.h is included and has all necessary files
+  * Check if correct SPI mode is set in CFG_REG after changing (SPI commands work)
+  * Check interrupt is successfully received when FIFO is full
+  * Check if variable data structure is suitable for storing and manipulating measurements
 */
 
 
@@ -68,10 +77,21 @@ void setup() {
 
 void loop() {
   
-//  if (digitalRead(pin_interrupt) == HIGH) {
-//
-//    //
-//  }
+  if (digitalRead(pin_interrupt) == HIGH) {
+    // Copy all data to memory and then process in bulk
+    int i = 0;
+    // INSERT loop here to iterate through pressure measurements (i < 32)
+    // Filter based on ratio of pressure to temperature measurements
+    byte pressure_b2;
+    byte pressure b1; // left shift 4 times
+    byte pressure_b0; // Left shift 8 times
+    // Remove metadata like whether pressure or temperature
+//    pressure_combined = pressure_b0 + pressure_b1 + pressure_b2; // DEBUG: test that measurements are being combined correctly before entering loop
+    
+    
+    
+    // Copy one line at a time and then process in bulk (Optional)
+  }
   
 
 }
