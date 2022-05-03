@@ -103,16 +103,43 @@ void loop() {
 
 //Read from register in DPS310
 unsigned int readRegister(byte thisRegister, int bytesToRead) {
+
+  byte inByte = 0; // Incoming byte from the SPI
+
+  unsigned int result = 0; // Result to return
+
+//  Serial.print(thisRegister, BIN); // PURPOSE?
+//  Serial.print("\t");
   byte dataToSend = thisRegister | READ; // Format so that DPS knows this is a read request
+  digitalWrite(pin_ss, LOW); // Select DPS
+  
+  SPI.transfer(dataToSend); // Send register address
+
+  // Send a value of zero to read the first byte returned
+  result = SPI.transfer(0x00);
+
+    bytesToRead--;
+
+  // if you still have another byte to read:
+  if (bytesToRead > 0) {
+    
+    result = result << 8; // shift the first byte left, then get the second byte:
+    inByte = SPI.transfer(0x00);
+    
+    result = result | inByte; // combine the byte you just got with the previous one:
+
+    bytesToRead--; // decrement the number of bytes left to read:
+  
+  digitalWrite(pin_ss, HIGH); // deselect DPS
 }
 
 // Write to register in DPS310
 void writeRegister(byte thisRegister, byte thisValue) {
  byte dataToSend = thisRegister; // Write request needs no additional formatting
- digitalWrite(pin_ss, LOW); // Select device
+ digitalWrite(pin_ss, LOW); // Select DPS310
  
  SPI.transfer(dataToSend); // Send register address
  SPI.transfer(thisValue); // Send value to store in register
  
- digitalWrite(pin_ss, HIGH); // Deselect device
+ digitalWrite(pin_ss, HIGH); // Deselect DPS
 }
