@@ -60,7 +60,7 @@ const byte READ = 0b10000000; // bit 7 of address used as read/write command. RW
 
 // Pins
 const int pin_ss = 5; // Pin D5 used as slave select
-const int pin_interrupt = 6; // Pin D6 used to receive interrupt
+//const int pin_interrupt = 6; // Pin D6 used to receive interrupt
 
 // Establish SPI connection with sensor, and serial connection with computer if applicable
 // Configure sensor to desired operating mode
@@ -73,7 +73,7 @@ void setup() {
   //   pinMode(23, OUTPUT); // Define MOSI as output pin
   //   pinMode(24, OUTPUT); // Define SCK as output pin
   pinMode(pin_ss, OUTPUT); // Define D5 pin (SS) as output (active low)
-  pinMode(pin_interrupt, INPUT); // Define D6 pin (SDO) as input. Used as interrupt pin
+//  pinMode(pin_interrupt, INPUT); // Define D6 pin (SDO) as input. Used as interrupt pin
 
   Serial.begin(9600); // Open serial connection
 
@@ -81,7 +81,8 @@ void setup() {
   Serial.print("Starting setup...\n");
 
   // Set up registers
-  writeRegister(CFG_REG, 0xC7); // Sets SPI mode to 3-wire with interrupt, and enables FIFO --> NB. May throw error without WRITE specified.
+//  writeRegister(CFG_REG, 0xC7); // Sets SPI mode to 3-wire with interrupt, and enables FIFO
+  writeRegister(CFG_REG, 0x06); // Sets SPI mode to 4-wire, and enables FIFO
   writeRegister(MEAS_CFG, 0x07); // Sets operating mode to background
   writeRegister(PRS_CFG, 0x26); // Sets desired pressure reading parameters (See *Sensor Configuration*)
   writeRegister(TMP_CFG, 0xA0); // Sets desired temperature reading parameters
@@ -208,6 +209,9 @@ unsigned int readRegister(byte thisRegister, int bytesToRead) {
   
   digitalWrite(pin_ss, HIGH); // deselect DPS
 }
+
+return (result);
+
 }
 
 // Write to register in DPS310
