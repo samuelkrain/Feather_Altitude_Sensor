@@ -31,20 +31,19 @@ Sensor Configuration:
 
 Coding Checklist
   Code data preprocessing section (l. 89)
-  Read sensor coefficients
   Calculate compensated values
   Store values
   Loop measurement system
+  Check number of measurements taken over flight period
   
 Debug Checklist
-    - Check SPI.h is included and has all necessary files
-    - Check whether SerialUSB or Serial should be used
     - Check that readRegister and writeRegister perform as expected
     - Check if correct SPI mode is set in CFG_REG after changing (SPI commands work)
     - Check interrupt is successfully received when FIFO is full
     - Check if variable data structure is suitable for storing and manipulating measurements
     - Does pin_ss have to be declared high in setup?
     - Check if sensor updates calibration coefficients or if they are fixed (if fixed then )
+    - Check ratio of pressure to temperature measurements in readings (should be 1:1)
 */
 
 // Includes
@@ -99,13 +98,12 @@ void setup() {
 
 void loop() {
 
-  if (digitalRead(pin_interrupt) == HIGH) {
-
     // Initialise pressure and temperature scaling factors (based on oversampling rate)
     int kP = 1040384; // Pressure scaling factor
     int kT = 524288; // Temperature scaling factor
     
      // Read calibration coefficients
+     // Values larger than 8 bits are split between multiple registers and must be combined
      byte c0_upper = readRegister(0x10,1);
      byte c0_lower = readRegister(0x11,1) & 0b11110000;
      byte c0 = ((c0_upper << 4) | (c0_lower >> 4));
@@ -146,35 +144,52 @@ void loop() {
      
     
     // Copy all data to memory and then process in bulk
-    int i = 0;
     
-    // INSERT loop here to iterate through pressure measurements (i < 32)
+    
+    // Loop to iterate through pressure measurements (i < 32)
     // Filter based on ratio of pressure to temperature measurements
-
-    bool isPressure = 0; 
-    
-    byte pressure_b2 = readRegister(0x00, 1);
-    byte pressure_b1 = readRegister(0x01, 1);
-    byte pressure_b0 = readRegister(0x02, 1);
-    long int pressureCombined = ((pressure_b2 << 16) | (pressure_b1 << 8) | pressure_b0); // Combine bytes into one value. ** CHECK INT
-    
-    // Remove metadata like whether pressure or temperature measurement
-    int flagMetadata = 0b00000001; // Check whether int?
-    
-    if ((pressureCombined & flagMetadata) == 1) { // Check if value is a pressure or temperature measurement . 1 in binary?
-      isPressure = 1;
-//      pressureCombined &= ~flagMetadata; // Remove LSB **NEEDED?**
-    } else {
-      isPressure = 0;
+    for (int i = 0; i<32; i++) {
+      bool isPressure[32];
+      unsigned int readingCombined[32];
+      
+      byte reading_b2 = readRegister(0x00, 1);
+      byte reading_b1 = readRegister(0x01, 1);
+      byte reading_b0 = readRegister(0x02, 1);
+      
+      readingCombined[i] = ((reading_b2 << 16) | (reading_b1 << 8) | reading_b0); // Combine bytes into one value. ** CHECK INT
+      
+      // Remove metadata like whether pressure or temperature measurement
+      int flagMetadata = 0b00000001; // Check whether int?
+      
+      if ((reading_b0 & flagMetadata) == 1) { // Check if value is a pressure or temperature measurement . 1 in binary?
+        isPressure[i] = 1;
+      } else {
+        isPressure[i] = 0;
+      }
+    // ** NB ** measurement may have to be bit-shifted down one bit to remove pressure/temperature flag
     }
-    pressureCombined = pressureCombined >> 1; // Shift values down
-
+//
+//    int n = 0;
+//    for (n<32) {
+//      long int readingScaled[32];
+//      double readingComp[32]; // **CHECK THIS IS APPROPRIATE DATATYPE**
+//      
+//      // Scale measurement by either pressure or temperature scaling factor
+//      // Multiply measurements by calibration coefficients
+//      if (isPressure[n] == 1) {
+//        readingScaled[n] = readingCombined[i]/kP;
+//        readingComp[n] = c00 + readingScaled[n]*(c10 + readingScaled[n] *(c20+ readingScaled[n] *c30)) + readingScaled[n+1] *c01 +
+//        readingComp[n+1] * readingScaled[n] *(c11+readingScaled[n]*c21);
+//      } else {
+//        readingScaled[n] = readingCombined[n]/kT;
+//        readingComp[n] =  c0*0.5 + c1*readingScaled[n];
+//      }
+//      n ++;
+//      }
 
  
   
     
-    // Copy one line at a time and process it (Optional)
-    }
   }
 
 //Read from register in DPS310
